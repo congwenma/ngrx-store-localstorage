@@ -37,7 +37,7 @@ const validateStateKeys = (keys: any[]) => {
   });
 };
 
-// NOTE: for initial app state
+// NOTE: for getting initial app state
 export const rehydrateApplicationState = (
   keys: any[],
   storage: Storage,
@@ -94,6 +94,7 @@ export const rehydrateApplicationState = (
       }
     }
     if (storage !== undefined) {
+      // NOTE: actual work, pulls it from storage
       let stateSlice = storage.getItem(storageKeySerializer(key));
       if (stateSlice) {
         // Use provided decrypt function
