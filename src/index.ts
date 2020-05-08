@@ -22,6 +22,7 @@ const validateStateKeys = (keys: any[]) => {
   return keys.map(key => {
     let attr = key;
 
+    // NOTE: only looks at first `key` in `key: Object`, so objects should have one key
     if (typeof key === 'object') {
       attr = Object.keys(key)[0];
     }
@@ -36,6 +37,7 @@ const validateStateKeys = (keys: any[]) => {
   });
 };
 
+// NOTE: for initial app state
 export const rehydrateApplicationState = (
   keys: any[],
   storage: Storage,
@@ -49,9 +51,12 @@ export const rehydrateApplicationState = (
     let decrypt;
 
     if (typeof key === 'object') {
+      // NOTE: fixes key
       key = Object.keys(key)[0];
+
       // use the custom reviver function
       if (typeof curr[key] === 'function') {
+        // NOTE: WOW, you can actually just pass in a function to use for JSON.parse revive?
         reviver = curr[key];
       } else {
         // use custom reviver function if available
@@ -70,6 +75,7 @@ export const rehydrateApplicationState = (
           typeof curr[key].encrypt === 'function' &&
           typeof curr[key].decrypt === 'function'
         ) {
+          // NOTE: both have to be set in order to set just `decrypt`
           decrypt = curr[key].decrypt;
         } else {
           console.error(
@@ -99,6 +105,7 @@ export const rehydrateApplicationState = (
         let raw = stateSlice;
 
         if (stateSlice === 'null' || isObjectRegex.test(stateSlice.charAt(0))) {
+          // NOTE: if its serilaized object or array, raw will store parsed version
           raw = JSON.parse(stateSlice, reviver);
         }
 
@@ -119,6 +126,7 @@ export const syncStateUpdate = (
   removeOnUndefined: boolean,
   syncCondition?: (state: any) => any
 ) => {
+  // NOTE: early terminate if `syncCondition(state) === false`
   if (syncCondition) {
     try {
       if (syncCondition(state) !== true) {
@@ -149,6 +157,7 @@ export const syncStateUpdate = (
         } else {
           // if serialize function is not specified filter on fields if an array has been provided.
           let filter;
+          // NOTE: this `reduce` isn't even mentioned in the docs, it looks like its duck type checking for something else...
           if (key[name].reduce) {
             filter = key[name];
           } else if (key[name].filter) {
@@ -188,6 +197,7 @@ export const syncStateUpdate = (
     }
 
     if (typeof stateSlice !== 'undefined' && storage !== undefined) {
+      // NOTE: actually doing the work
       try {
         if (encrypt) {
           // ensure that a string message is passed
@@ -207,6 +217,7 @@ export const syncStateUpdate = (
         console.warn('Unable to save state to localStorage:', e);
       }
     } else if (typeof stateSlice === 'undefined' && removeOnUndefined) {
+      // Remove if removed
       try {
         storage.removeItem(storageKeySerializer(key));
       } catch (e) {
@@ -220,7 +231,7 @@ export const syncStateUpdate = (
 };
 
 // Default merge strategy is a full deep merge.
-export const defaultMergeReducer = (state: any, rehydratedState: any, action: any) => { 
+export const defaultMergeReducer = (state: any, rehydratedState: any, action: any) => {
 
   if ((action.type === INIT_ACTION || action.type === UPDATE_ACTION) && rehydratedState) {
     const overwriteMerge = (destinationArray, sourceArray, options) => sourceArray;
@@ -259,6 +270,8 @@ export const localStorageSync = (config: LocalStorageConfig) => (
   }
 
   const stateKeys = validateStateKeys(config.keys);
+
+  // NOTE: determines initial state
   const rehydratedState = config.rehydrate
     ? rehydrateApplicationState(
         stateKeys,
@@ -279,10 +292,13 @@ export const localStorageSync = (config: LocalStorageConfig) => (
       nextState = { ...state };
     }
 
+    // NOTE: internally only uses `rehydratedState` if action is `INIT_ACTION` | `UPDATE_ACTION`.
     // Merge the store state with the rehydrated state using
     // either a user-defined reducer or the default.
     nextState = mergeReducer(nextState, rehydratedState, action);
-  
+
+    // NOTE: reduces after rehydrate, WHY are we reducing again? WHY not just rehydrate then reducer?
+    // NOTE: Oh b/c this is for all other reducers
     nextState = reducer(nextState, action);
 
     if (action.type !== INIT_ACTION) {
