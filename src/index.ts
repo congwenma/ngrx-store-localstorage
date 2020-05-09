@@ -2,6 +2,7 @@ import * as deepmerge from 'deepmerge';
 
 const INIT_ACTION = '@ngrx/store/init';
 const UPDATE_ACTION = '@ngrx/store/update-reducers';
+
 const detectDate = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
 
 // correctly parse dates from local storage
@@ -273,7 +274,7 @@ export const localStorageSync = (config: LocalStorageConfig) => (
 
     // If state arrives undefined, we need to let it through the supplied reducer
     // in order to get a complete state as defined by user
-    if ((action.type === INIT_ACTION) && !state) {
+    if ((action.type === INIT_ACTION || action.type === UPDATE_ACTION) && !state) {
       nextState = reducer(state, action);
     } else {
       nextState = { ...state };
